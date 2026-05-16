@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PeopleOS — HR Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161d;
+    --surface-2: #1a1e28;
+    --border: #252a38;
+    --accent: #c8f040;
+    --accent-dim: rgba(200,240,64,0.12);
+    --accent-mid: rgba(200,240,64,0.35);
+    --blue: #5b8fff;
+    --blue-dim: rgba(91,143,255,0.12);
+    --orange: #ff8c42;
+    --orange-dim: rgba(255,140,66,0.12);
+    --rose: #ff5e7a;
+    --rose-dim: rgba(255,94,122,0.12);
+    --text: #e8eaf0;
+    --text-2: #8a90a8;
+    --text-3: #555d78;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Instrument Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Subtle noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0;
+  }
+
+  /* === SIDEBAR === */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 28px 0;
+    z-index: 10;
+  }
+
+  .logo {
+    padding: 0 24px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-mark {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+
+  .logo-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  .nav {
+    flex: 1;
+    padding: 20px 12px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover { background: var(--surface-2); color: var(--text); }
+
+  .nav-item.active {
+    background: var(--accent-dim);
+    border-color: var(--accent-mid);
+    color: var(--accent);
+  }
+
+  .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  .sidebar-footer {
+    padding: 20px 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .user-pill {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px;
+  }
+
+  .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: #000; flex-shrink: 0;
+  }
+
+  .user-name { font-weight: 500; font-size: 13px; }
+  .user-role { font-size: 11px; color: var(--text-3); }
+
+  /* === MAIN === */
+  .main {
+    margin-left: 220px;
+    padding: 36px 40px;
+    min-height: 100vh;
+    position: relative; z-index: 1;
+  }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 36px;
+  }
+
+  .page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+
+  .page-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .topbar-actions {
+    display: flex; gap: 10px; align-items: center;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+    transition: all 0.15s;
+    font-family: 'Instrument Sans', sans-serif;
+  }
+
+  .btn:hover { border-color: var(--text-3); color: var(--text); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .btn-primary:hover { background: #d8f850; border-color: #d8f850; color: #000; }
+
+  /* === KPI ROW === */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+  .kpi-card:nth-child(2) { animation-delay: 0.1s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.2s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .kpi-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-3);
+    margin-bottom: 10px;
+  }
+
+  .kpi-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+
+  .kpi-delta {
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    margin-top: 6px;
+  }
+
+  .up { color: var(--accent); }
+  .down { color: var(--rose); }
+
+  .kpi-accent-line {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  }
+
+  /* === MODULE GRID === */
+  .modules {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .module {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .module:nth-child(1) { animation-delay: 0.25s; }
+  .module:nth-child(2) { animation-delay: 0.3s; }
+  .module:nth-child(3) { animation-delay: 0.35s; }
+  .module:nth-child(4) { animation-delay: 0.4s; }
+
+  .module-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .module-title-wrap { display: flex; align-items: center; gap: 10px; }
+
+  .module-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+  }
+
+  .module-title {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+
+  .module-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .module-body { padding: 18px 20px; }
+
+  /* === CANDIDATE SOURCING === */
+  .pipeline {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .pipeline-stage {
+    display: grid;
+    grid-template-columns: 90px 1fr 40px;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .stage-label {
+    font-size: 12px;
+    color: var(--text-2);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .stage-bar-wrap {
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .stage-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s cubic-bezier(.2,.8,.2,1);
+  }
+
+  .stage-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+    text-align: right;
+  }
+
+  .source-chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .chip {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--text-2);
+    font-family: 'DM Mono', monospace;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .chip-dot { width: 5px; height: 5px; border-radius: 50%; }
+
+  /* === INTERVIEW SCHEDULING === */
+  .schedule-list {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .interview-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    transition: border-color 0.15s;
+    cursor: pointer;
+  }
+
+  .interview-row:hover { border-color: var(--text-3); }
+
+  .time-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    background: var(--bg);
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: var(--text-2);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .interview-info { flex: 1; min-width: 0; }
+  .candidate-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .interview-role { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+
+  .interview-type {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+  }
+
+  /* === ONBOARDING === */
+  .onboard-list {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .onboard-row {
+    display: grid;
+    grid-template-columns: 1fr 120px 36px;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .onboard-name { font-size: 13px; font-weight: 500; }
+  .onboard-dept { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+
+  .mini-bar-wrap {
+    height: 4px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+
+  .mini-bar { height: 100%; border-radius: 2px; }
+
+  .pct {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-2);
+    text-align: right;
+  }
+
+  .days-chip {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-3);
+    background: var(--surface-2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+    display: inline-block;
+  }
+
+  /* === PAYROLL === */
+  .payroll-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .payroll-stat {
+    background: var(--surface-2);
+    border-radius: 9px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+  }
+
+  .ps-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-3);
+    margin-bottom: 6px;
+  }
+
+  .ps-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+  }
+
+  .ps-sub {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 3px;
+  }
+
+  .payroll-breakdown {
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+    display: flex; flex-direction: column; gap: 7px;
+  }
+
+  .breakdown-row {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  .br-label { font-size: 12px; color: var(--text-2); }
+  .br-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  /* === STATUS DOTS === */
+  .pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+    box-shadow: 0 0 0 0 rgba(200,240,64,0.5);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(200,240,64,0.5); }
+    70%  { box-shadow: 0 0 0 6px rgba(200,240,64,0); }
+    100% { box-shadow: 0 0 0 0 rgba(200,240,64,0); }
+  }
+
+  /* === SCROLLBAR === */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">PeopleOS</div>
+    <div class="logo-sub">HR Command Center</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active">
+      <span class="nav-dot" style="background:var(--accent)"></span>
+      Overview
+    </div>
+    <div class="nav-item">
+      <span class="nav-dot" style="background:var(--blue)"></span>
+      Recruitment
+    </div>
+    <div class="nav-item">
+      <span class="nav-dot" style="background:var(--orange)"></span>
+      Interviews
+    </div>
+    <div class="nav-item">
+      <span class="nav-dot" style="background:var(--rose)"></span>
+      Onboarding
+    </div>
+    <div class="nav-item">
+      <span class="nav-dot" style="background:#a78bfa"></span>
+      Payroll
+    </div>
+    <div class="nav-item">
+      <span class="nav-dot" style="background:var(--text-3)"></span>
+      Reports
+    </div>
+    <div class="nav-item">
+      <span class="nav-dot" style="background:var(--text-3)"></span>
+      Settings
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="avatar">AS</div>
+      <div>
+        <div class="user-name">Ayesha Singh</div>
+        <div class="user-role">HR Director</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+  <div class="topbar">
+    <div>
+      <h1 class="page-title">Dashboard</h1>
+      <div class="page-date">Sunday, 17 May 2026 &nbsp;·&nbsp; <span class="pulse"></span> Live</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn">Export Report</button>
+      <button class="btn-primary btn">+ Add Employee</button>
+    </div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Open Positions</div>
+      <div class="kpi-value" style="color:var(--accent)">24</div>
+      <div class="kpi-delta up">↑ 4 this month</div>
+      <div class="kpi-accent-line" style="background:var(--accent)"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Interviews Scheduled</div>
+      <div class="kpi-value" style="color:var(--blue)">11</div>
+      <div class="kpi-delta up">↑ 3 this week</div>
+      <div class="kpi-accent-line" style="background:var(--blue)"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Onboarding Active</div>
+      <div class="kpi-value" style="color:var(--orange)">7</div>
+      <div class="kpi-delta" style="color:var(--text-3)">→ Steady</div>
+      <div class="kpi-accent-line" style="background:var(--orange)"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Payroll This Month</div>
+      <div class="kpi-value" style="color:#a78bfa">₹48.2L</div>
+      <div class="kpi-delta down">↑ 2.1% vs last</div>
+      <div class="kpi-accent-line" style="background:#a78bfa"></div>
+    </div>
+  </div>
+
+  <!-- MODULES -->
+  <div class="modules">
+
+    <!-- MODULE 1: CANDIDATE SOURCING -->
+    <div class="module">
+      <div class="module-header">
+        <div class="module-title-wrap">
+          <div class="module-icon" style="background:var(--accent-dim)">🎯</div>
+          <span class="module-title">Candidate Sourcing</span>
+        </div>
+        <span class="module-badge" style="background:var(--accent-dim);color:var(--accent)">Active</span>
+      </div>
+      <div class="module-body">
+        <div class="pipeline">
+          <div class="pipeline-stage">
+            <span class="stage-label">Applied</span>
+            <div class="stage-bar-wrap">
+              <div class="stage-bar" style="width:100%;background:var(--accent)"></div>
+            </div>
+            <span class="stage-count">218</span>
+          </div>
+          <div class="pipeline-stage">
+            <span class="stage-label">Screened</span>
+            <div class="stage-bar-wrap">
+              <div class="stage-bar" style="width:62%;background:var(--blue)"></div>
+            </div>
+            <span class="stage-count">134</span>
+          </div>
+          <div class="pipeline-stage">
+            <span class="stage-label">Shortlisted</span>
+            <div class="stage-bar-wrap">
+              <div class="stage-bar" style="width:36%;background:var(--orange)"></div>
+            </div>
+            <span class="stage-count">79</span>
+          </div>
+          <div class="pipeline-stage">
+            <span class="stage-label">Interviewing</span>
+            <div class="stage-bar-wrap">
+              <div class="stage-bar" style="width:17%;background:var(--rose)"></div>
+            </div>
+            <span class="stage-count">37</span>
+          </div>
+          <div class="pipeline-stage">
+            <span class="stage-label">Offered</span>
+            <div class="stage-bar-wrap">
+              <div class="stage-bar" style="width:6%;background:#a78bfa"></div>
+            </div>
+            <span class="stage-count">13</span>
+          </div>
+        </div>
+        <div class="source-chips">
+          <div class="chip"><span class="chip-dot" style="background:var(--accent)"></span>LinkedIn · 44%</div>
+          <div class="chip"><span class="chip-dot" style="background:var(--blue)"></span>Naukri · 28%</div>
+          <div class="chip"><span class="chip-dot" style="background:var(--orange)"></span>Referral · 18%</div>
+          <div class="chip"><span class="chip-dot" style="background:var(--text-3)"></span>Other · 10%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 2: INTERVIEW SCHEDULING -->
+    <div class="module">
+      <div class="module-header">
+        <div class="module-title-wrap">
+          <div class="module-icon" style="background:var(--blue-dim)">🗓</div>
+          <span class="module-title">Interview Scheduling</span>
+        </div>
+        <span class="module-badge" style="background:var(--blue-dim);color:var(--blue)">11 Today</span>
+      </div>
+      <div class="module-body">
+        <div class="schedule-list">
+          <div class="interview-row">
+            <div class="time-badge">09:00</div>
+            <div class="interview-info">
+              <div class="candidate-name">Rohan Mehta</div>
+              <div class="interview-role">Sr. Product Designer · Round 2</div>
+            </div>
+            <span class="interview-type" style="background:var(--blue-dim);color:var(--blue)">Video</span>
+          </div>
+          <div class="interview-row">
+            <div class="time-badge">10:30</div>
+            <div class="interview-info">
+              <div class="candidate-name">Priya Nair</div>
+              <div class="interview-role">Backend Engineer · Technical</div>
+            </div>
+            <span class="interview-type" style="background:var(--accent-dim);color:var(--accent)">Onsite</span>
+          </div>
+          <div class="interview-row">
+            <div class="time-badge">13:00</div>
+            <div class="interview-info">
+              <div class="candidate-name">Arjun Kapoor</div>
+              <div class="interview-role">Data Analyst · HR Screen</div>
+            </div>
+            <span class="interview-type" style="background:var(--orange-dim);color:var(--orange)">Phone</span>
+          </div>
+          <div class="interview-row">
+            <div class="time-badge">15:30</div>
+            <div class="interview-info">
+              <div class="candidate-name">Sneha Pillai</div>
+              <div class="interview-role">Marketing Lead · Culture Fit</div>
+            </div>
+            <span class="interview-type" style="background:var(--blue-dim);color:var(--blue)">Video</span>
+          </div>
+          <div class="interview-row">
+            <div class="time-badge">17:00</div>
+            <div class="interview-info">
+              <div class="candidate-name">Karan Bose</div>
+              <div class="interview-role">DevOps Engineer · Round 1</div>
+            </div>
+            <span class="interview-type" style="background:var(--blue-dim);color:var(--blue)">Video</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 3: ONBOARDING PROGRESS -->
+    <div class="module">
+      <div class="module-header">
+        <div class="module-title-wrap">
+          <div class="module-icon" style="background:var(--orange-dim)">🚀</div>
+          <span class="module-title">Onboarding Progress</span>
+        </div>
+        <span class="module-badge" style="background:var(--orange-dim);color:var(--orange)">7 Active</span>
+      </div>
+      <div class="module-body">
+        <div class="onboard-list">
+          <div class="onboard-row">
+            <div>
+              <div class="onboard-name">Ananya Sharma</div>
+              <div class="onboard-dept">Engineering &nbsp;·&nbsp; <span class="days-chip">Day 3</span></div>
+              <div class="mini-bar-wrap"><div class="mini-bar" style="width:42%;background:var(--orange)"></div></div>
+            </div>
+            <div style="text-align:right">
+              <div class="pct" style="color:var(--orange)">42%</div>
+              <div style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;margin-top:1px">Docs pending</div>
+            </div>
+            <div></div>
+          </div>
+          <div class="onboard-row">
+            <div>
+              <div class="onboard-name">Dev Malhotra</div>
+              <div class="onboard-dept">Finance &nbsp;·&nbsp; <span class="days-chip">Day 8</span></div>
+              <div class="mini-bar-wrap"><div class="mini-bar" style="width:78%;background:var(--blue)"></div></div>
+            </div>
+            <div style="text-align:right">
+              <div class="pct" style="color:var(--blue)">78%</div>
+              <div style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;margin-top:1px">Training left</div>
+            </div>
+            <div></div>
+          </div>
+          <div class="onboard-row">
+            <div>
+              <div class="onboard-name">Megha Iyer</div>
+              <div class="onboard-dept">Design &nbsp;·&nbsp; <span class="days-chip">Day 12</span></div>
+              <div class="mini-bar-wrap"><div class="mini-bar" style="width:91%;background:var(--accent)"></div></div>
+            </div>
+            <div style="text-align:right">
+              <div class="pct" style="color:var(--accent)">91%</div>
+              <div style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;margin-top:1px">Near complete</div>
+            </div>
+            <div></div>
+          </div>
+          <div class="onboard-row">
+            <div>
+              <div class="onboard-name">Vivek Rao</div>
+              <div class="onboard-dept">Sales &nbsp;·&nbsp; <span class="days-chip">Day 1</span></div>
+              <div class="mini-bar-wrap"><div class="mini-bar" style="width:15%;background:var(--rose)"></div></div>
+            </div>
+            <div style="text-align:right">
+              <div class="pct" style="color:var(--rose)">15%</div>
+              <div style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;margin-top:1px">Just started</div>
+            </div>
+            <div></div>
+          </div>
+          <div class="onboard-row">
+            <div>
+              <div class="onboard-name">Nisha Gupta</div>
+              <div class="onboard-dept">HR &nbsp;·&nbsp; <span class="days-chip">Day 6</span></div>
+              <div class="mini-bar-wrap"><div class="mini-bar" style="width:60%;background:var(--blue)"></div></div>
+            </div>
+            <div style="text-align:right">
+              <div class="pct" style="color:var(--blue)">60%</div>
+              <div style="font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;margin-top:1px">On track</div>
+            </div>
+            <div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 4: PAYROLL SUMMARY -->
+    <div class="module">
+      <div class="module-header">
+        <div class="module-title-wrap">
+          <div class="module-icon" style="background:rgba(167,139,250,0.12)">💸</div>
+          <span class="module-title">Payroll Summary</span>
+        </div>
+        <span class="module-badge" style="background:rgba(167,139,250,0.15);color:#a78bfa">May 2026</span>
+      </div>
+      <div class="module-body">
+        <div class="payroll-grid">
+          <div class="payroll-stat">
+            <div class="ps-label">Net Payroll</div>
+            <div class="ps-value" style="color:#a78bfa">₹48.2L</div>
+            <div class="ps-sub">312 employees</div>
+          </div>
+          <div class="payroll-stat">
+            <div class="ps-label">Processing</div>
+            <div class="ps-value" style="color:var(--orange)">14th</div>
+            <div class="ps-sub">3 days remaining</div>
+          </div>
+          <div class="payroll-stat">
+            <div class="ps-label">Avg. Salary</div>
+            <div class="ps-value" style="color:var(--text)">₹1.54L</div>
+            <div class="ps-sub">Per employee</div>
+          </div>
+          <div class="payroll-stat">
+            <div class="ps-label">Compliance</div>
+            <div class="ps-value" style="color:var(--accent)">98.7%</div>
+            <div class="ps-sub">PF / ESI current</div>
+          </div>
+        </div>
+        <div class="payroll-breakdown">
+          <div class="breakdown-row">
+            <span class="br-label">Base Salaries</span>
+            <span class="br-val">₹38,40,000</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="br-label">Bonuses & Incentives</span>
+            <span class="br-val">₹5,60,000</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="br-label">PF Contributions</span>
+            <span class="br-val">₹2,80,000</span>
+          </div>
+          <div class="breakdown-row">
+            <span class="br-label">TDS Deductions</span>
+            <span class="br-val" style="color:var(--rose)">− ₹1,60,000</span>
+          </div>
+          <div class="breakdown-row" style="padding-top:8px;border-top:1px solid var(--border)">
+            <span class="br-label" style="font-weight:600;color:var(--text)">Total Disbursed</span>
+            <span class="br-val" style="color:#a78bfa;font-weight:600">₹45,20,000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .modules -->
+</main>
+
+<script>
+  // Animate bars on load
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.stage-bar').forEach(bar => {
+      const w = bar.style.width;
+      bar.style.width = '0';
+      setTimeout(() => { bar.style.width = w; }, 200);
+    });
+  });
+
+  // Nav item active state
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
